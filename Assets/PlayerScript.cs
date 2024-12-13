@@ -1,0 +1,118 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class PlayerScript : MonoBehaviour
+{
+    //Object References
+    public GameObject pBody; //player body
+    public GameObject pCam; //player camera
+
+    //Camera
+        //settings
+        public float hSens; //horizontal sensitivity set in editor
+        public float vSens; //verticle sensitivity set in editor
+        public bool invY; //toggle to invert Y axis when looking
+
+        //values
+        public Vector3 pForward;
+        public Vector3 pForwardFlat;
+        public Vector3 pRight;
+        public Vector3 pRightFlat;
+        private float invYval; //convert the invY bool into an float 1/-1
+        private Vector2 lookInput; //pull the Vector 2 from the input system
+        private float vLookAngle; //independant Y axis for camera control
+
+    //Movement
+        //settings
+    public float maxVelocity;
+    public float acceleration;
+    public float maxStrafeSpeed;
+    public float drag;
+    public float stoppingPower;
+        //values
+    private Vector2 moveInput; //pull the Vector 2 from the input system
+    public float xVelocity;
+    public float zVelocity;
+    
+    private bool isMoving;
+    private bool isMovingx;
+
+
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        invYval = invY ? -1 : 1;  //pull value from invY bool, -1 if true, 1 if false
+    }
+
+    public void OnLook(InputValue v) //Method calls whenever look input is given (mouse or right stick)
+    {
+        lookInput = v.Get<Vector2>(); //pulls value from input
+    }
+
+
+    public void OnMove(InputValue v)
+    {
+        moveInput = v.Get<Vector2>();
+      
+    }
+
+    
+
+    // Update is called once per frame
+    void Update()
+    {
+        //Camera Control
+        vLookAngle += lookInput.y * vSens; //adjust verticle angle
+        vLookAngle = Mathf.Clamp(vLookAngle, -80f, 80f); //restrain angle from -90 to 90 (so we dont break our neck)
+        pBody.transform.eulerAngles += new Vector3(0, lookInput.x * hSens, 0); // rotate whole player horizontally
+        pCam.transform.eulerAngles = pBody.transform.eulerAngles + new Vector3(vLookAngle * invYval, 0, 0); //rotate cam vertically
+        pForward = pCam.transform.forward;
+        pForwardFlat = new Vector3(pForward.x, 0, pForward.z).normalized;
+
+        pRight = pCam.transform.right;
+        pRightFlat = new Vector3(pRight.x, 0, pRight.z).normalized;
+
+        //Movement Control 
+        if (Mathf.Abs(moveInput.y) > .5f) { isMoving = true;} else { isMoving = false;}
+        if (Mathf.Abs(moveInput.x) > .5f) { isMovingx = true; } else { isMovingx = false; }
+
+        //put state check here later please
+        if (isMoving) 
+        { 
+            if(Mathf.Abs(zVelocity) < maxVelocity) zVelocity += (acceleration * moveInput.y); //if going less than top speed add speed
+            else if (zVelocity - maxVelocity > .01f) zVelocity = ((zVelocity - maxVelocity) * .99f ) + maxVelocity; //if exceeding top speed by large margin slow gradually
+            else if (zVelocity + maxVelocity < -.01f) zVelocity = ((zVelocity + maxVelocity) * .99f) - maxVelocity; // for moving backwards fast
+            else if (zVelocity > 0) zVelocity = maxVelocity; // if exceeding top speed by shallow margin set speed to top speed
+            else zVelocity = -maxVelocity;
+        }
+        else 
+        {
+            if (Mathf.Abs(zVelocity) > .1f) zVelocity *= stoppingPower; //if going faster than snail slow down by a lot
+            else zVelocity = 0; // if going slower than snail stop completely
+        }
+
+        if (isMovingx)
+        {
+            if (Mathf.Abs(xVelocity) < maxStrafeSpeed) xVelocity += (acceleration * moveInput.x); //if going less than top speed add speed
+            else if (xVelocity - maxStrafeSpeed > .01f) xVelocity = ((xVelocity - maxStrafeSpeed) * .99f) + maxStrafeSpeed; //if exceeding top speed by large margin slow gradually
+            else if (xVelocity + maxStrafeSpeed < -.01f) xVelocity = ((xVelocity + maxStrafeSpeed) * .99f) - maxStrafeSpeed; // for moving backwards fast
+            else if (xVelocity > 0) xVelocity = maxStrafeSpeed; // if exceeding top speed by shallow margin set speed to top speed
+            else xVelocity = -maxStrafeSpeed;
+        }
+        else
+        {
+            if (Mathf.Abs(xVelocity) > .1f) xVelocity *= stoppingPower; //if going faster than snail slow down by a lot
+            else xVelocity = 0; // if going slower than snail stop completely
+        }
+        
+    }
+
+    void FixedUpdate()
+    {
+       pBody.GetComponent<Rigidbody>().velocity = pForwardFlat * zVelocity + pRightFlat * xVelocity;
+    }
+}
