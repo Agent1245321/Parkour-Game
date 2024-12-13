@@ -32,12 +32,12 @@ public class PlayerScript : MonoBehaviour
     public float drag;
     public float stoppingPower;
         //values
-    private Vector2 moveInput; //pull the Vector 2 from the input system
+    public Vector2 moveInput; //pull the Vector 2 from the input system
     public float xVelocity;
     public float zVelocity;
     
-    private bool isMoving;
-    private bool isMovingx;
+    public bool isMoving;
+    public bool isMovingx;
 
 
 
@@ -86,8 +86,9 @@ public class PlayerScript : MonoBehaviour
             if(Mathf.Abs(zVelocity) < maxVelocity) zVelocity += (acceleration * moveInput.y); //if going less than top speed add speed
             else if (zVelocity - maxVelocity > .01f) zVelocity = ((zVelocity - maxVelocity) * .99f ) + maxVelocity; //if exceeding top speed by large margin slow gradually
             else if (zVelocity + maxVelocity < -.01f) zVelocity = ((zVelocity + maxVelocity) * .99f) - maxVelocity; // for moving backwards fast
-            else if (zVelocity > 0) zVelocity = maxVelocity; // if exceeding top speed by shallow margin set speed to top speed
-            else zVelocity = -maxVelocity;
+            else if (moveInput.y > 0 && zVelocity > 0 && zVelocity - maxVelocity <= .01f) zVelocity = maxVelocity;
+            else if (moveInput.y < 0 && zVelocity < 0 && zVelocity + maxVelocity >= -.01f) zVelocity = -maxVelocity;// if exceeding top speed by shallow margin set speed to top speed
+            else zVelocity *= .99f; //this is a strange failsafe incase a computer player changes the input from -1 to 1 or viceversa in a single frame while at top speed
         }
         else 
         {
@@ -100,8 +101,9 @@ public class PlayerScript : MonoBehaviour
             if (Mathf.Abs(xVelocity) < maxStrafeSpeed) xVelocity += (acceleration * moveInput.x); //if going less than top speed add speed
             else if (xVelocity - maxStrafeSpeed > .01f) xVelocity = ((xVelocity - maxStrafeSpeed) * .99f) + maxStrafeSpeed; //if exceeding top speed by large margin slow gradually
             else if (xVelocity + maxStrafeSpeed < -.01f) xVelocity = ((xVelocity + maxStrafeSpeed) * .99f) - maxStrafeSpeed; // for moving backwards fast
-            else if (xVelocity > 0) xVelocity = maxStrafeSpeed; // if exceeding top speed by shallow margin set speed to top speed
-            else xVelocity = -maxStrafeSpeed;
+            else if (moveInput.x > 0 && xVelocity > 0 && xVelocity - maxStrafeSpeed <= .01f) xVelocity = maxStrafeSpeed; // if exceeding top speed by shallow margin set speed to top speed
+            else if (moveInput.x < 0 && xVelocity < 0 && + maxStrafeSpeed >= -.01f) xVelocity = -maxStrafeSpeed;
+            else xVelocity *= .99f; //this is a strange failsafe incase a computer player changes the input from -1 to 1 or viceversa in a single frame while at top speed
         }
         else
         {
@@ -113,6 +115,6 @@ public class PlayerScript : MonoBehaviour
 
     void FixedUpdate()
     {
-       pBody.GetComponent<Rigidbody>().velocity = pForwardFlat * zVelocity + pRightFlat * xVelocity;
+       pBody.GetComponent<Rigidbody>().velocity = pForwardFlat * zVelocity + pRightFlat * xVelocity + new Vector3(0, pBody.GetComponent<Rigidbody>().velocity.y, 0);
     }
 }
